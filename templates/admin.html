@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ניהול — COC</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; min-height: 100vh; }
+    header {
+      background: #1a2540; color: white;
+      padding: 16px 32px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    header h1 { font-size: 18px; }
+    header a { color: #60a5fa; text-decoration: none; font-size: 13px; }
+    .container { max-width: 960px; margin: 32px auto; padding: 0 16px; }
+    .section {
+      background: white; border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 28px; margin-bottom: 28px;
+    }
+    .section h2 { font-size: 16px; color: #1a2540; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { background: #f8fafc; color: #6b7280; font-weight: 600; padding: 10px 12px; text-align: right; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f9fafb; }
+    .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: #6b7280; }
+    input[type="text"], input[type="password"], select {
+      padding: 8px 12px; border: 1.5px solid #d1d5db;
+      border-radius: 6px; font-size: 14px; direction: ltr;
+    }
+    input:focus, select:focus { outline: none; border-color: #2563eb; }
+    .btn { padding: 8px 18px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-blue { background: #2563eb; color: white; }
+    .btn-blue:hover { background: #1d4ed8; }
+    .btn-red { background: #ef4444; color: white; font-size: 12px; padding: 5px 10px; }
+    .btn-red:hover { background: #dc2626; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-admin { background: #dbeafe; color: #1d4ed8; }
+    .badge-agent { background: #dcfce7; color: #166534; }
+    .empty { color: #9ca3af; font-size: 13px; padding: 12px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ניהול מערכת COC</h1>
+    <div>
+      <a href="/">חזרה לדף הראשי</a>
+      &nbsp;|&nbsp;
+      <a href="/logout">יציאה</a>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Products -->
+    <div class="section">
+      <h2>מוצרים במערכת</h2>
+      {% if products %}
+      <table>
+        <thead>
+          <tr><th>מק"ט</th><th>דגם</th><th>תיאור</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+          <tr>
+            <td><strong>{{ p.sku }}</strong></td>
+            <td>{{ p.model }}</td>
+            <td>{{ p.description or '—' }}</td>
+            <td>
+              <form method="POST" action="/admin/product/delete/{{ p.sku }}" onsubmit="return confirm('למחוק מק&quot;ט {{ p.sku }}?')">
+                <button class="btn btn-red" type="submit">מחק</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">אין מוצרים עדיין</div>
+      {% endif %}
+
+      <form method="POST" action="/admin/product/add">
+        <div class="form-row">
+          <div class="form-group">
+            <label>מק"ט</label>
+            <input type="text" name="sku" placeholder="6905414" required>
+          </div>
+          <div class="form-group">
+            <label>דגם</label>
+            <input type="text" name="model" placeholder="DCRP-50RNF" required>
+          </div>
+          <div class="form-group">
+            <label>תיאור (אופציונלי)</label>
+            <input type="text" name="description" placeholder="תיאור המוצר" style="width:220px">
+          </div>
+          <button class="btn btn-blue" type="submit">הוסף מוצר</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Users -->
+    <div class="section">
+      <h2>משתמשים</h2>
+      {% if users %}
+      <table>
+        <thead>
+          <tr><th>שם משתמש</th><th>תפקיד</th><th>תאריך הצטרפות</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ u.username }}</td>
+            <td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td>
+            <td>{{ u.created_at[:10] if u.created_at else '—' }}</td>
+            <td>
+              <form method="POST" action="/admin/user/delete/{{ u.username }}" onsubmit="return confirm('למחוק משתמש {{ u.username }}?')">
+                <button class="btn btn-red" type="submit">מחק</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">אין משתמשים</div>
+      {% endif %}
+
+      <form method="POST" action="/admin/user/add">
+        <div class="form-row">
+          <div class="form-group">
+            <label>שם משתמש</label>
+            <input type="text" name="username" placeholder="agent1" required>
+          </div>
+          <div class="form-group">
+            <label>סיסמה</label>
+            <input type="password" name="password" placeholder="••••••••" required>
+          </div>
+          <div class="form-group">
+            <label>תפקיד</label>
+            <select name="role">
+              <option value="agent">agent</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
+          <button class="btn btn-blue" type="submit">הוסף משתמש</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Logs -->
+    <div class="section">
+      <h2>יומן פעולות (50 אחרונים)</h2>
+      {% if logs %}
+      <table>
+        <thead>
+          <tr><th>תאריך ושעה</th><th>משתמש</th><th>מק"ט</th><th>דגם</th></tr>
+        </thead>
+        <tbody>
+          {% for l in logs %}
+          <tr>
+            <td>{{ l.created_at[:16].replace('T',' ') if l.created_at else '—' }}</td>
+            <td>{{ l.username }}</td>
+            <td>{{ l.sku }}</td>
+            <td>{{ l.model }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">אין פעולות עדיין</div>
+      {% endif %}
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>כניסה — מחולל תעודות COC</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      padding: 48px 40px;
+      width: 380px;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .logo h1 {
+      font-size: 22px;
+      color: #1a2540;
+      margin-bottom: 4px;
+    }
+    .logo p {
+      font-size: 13px;
+      color: #7a8599;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+      margin-top: 18px;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border-color 0.2s;
+      direction: ltr;
+      text-align: right;
+    }
+    input:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+    .error {
+      background: #fee2e2;
+      color: #991b1b;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+    button {
+      width: 100%;
+      margin-top: 28px;
+      padding: 12px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #1d4ed8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <h1>Wise Electric</h1>
+      <p>מחולל תעודות התאמה COC</p>
+    </div>
+    <form method="POST">
+      <label for="username">שם משתמש</label>
+      <input type="text" id="username" name="username" autocomplete="username" required>
+
+      <label for="password">סיסמה</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required>
+
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+
+      <button type="submit">כניסה</button>
+    </form>
+  </div>
+</body>
+</html>
