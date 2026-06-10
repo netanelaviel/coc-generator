@@ -3,6 +3,7 @@ from datetime import datetime
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
 TEMPLATE_PATH = "static/template.pdf"
 
@@ -30,21 +31,18 @@ DATE_RECT_Y = PAGE_HEIGHT - 134   # bottom of rect (below the underline)
 DATE_RECT_W = 75                   # covers x=49..124, just before label at 126.9
 DATE_RECT_H = 18                   # covers from underline up through the text
 
-# Model
-MODEL_X     = 319.2
-MODEL_BASE  = PAGE_HEIGHT - 287.1 - FONT_ASCENT
-MODEL_RECT_X = 317
-MODEL_RECT_Y = PAGE_HEIGHT - 300
-MODEL_RECT_W = 80
-MODEL_RECT_H = 16
+# Model + SKU share one line — covered by a single wide white rect
+# Model left-aligned at x=319.2, SKU right-aligned at x=478 (just before :מ"ק label at 482)
+# Auto-scale font down if combined width exceeds available space
+LINE_TOP     = 287.1                     # pdfplumber top of the line
+LINE_RECT_X  = 317                       # left edge of white cover rect
+LINE_RECT_Y  = PAGE_HEIGHT - 301        # bottom of white cover rect
+LINE_RECT_W  = 163                       # covers x=317..480
+LINE_RECT_H  = 17
 
-# SKU
-SKU_X       = 432.8
-SKU_BASE    = PAGE_HEIGHT - 287.1 - FONT_ASCENT
-SKU_RECT_X  = 430
-SKU_RECT_Y  = PAGE_HEIGHT - 300
-SKU_RECT_W  = 52
-SKU_RECT_H  = 16
+MODEL_X      = 319.2                     # left-align model here
+SKU_RIGHT_X  = 478                       # right-align SKU here
+LINE_AVAIL   = SKU_RIGHT_X - MODEL_X    # ~158.8 pt available for both values
 
 
 # Standards block — fits in the empty gap between body text (top≈393) and signature (top≈471)
@@ -80,13 +78,15 @@ def _build_overlay(sku: str, model: str, with_standards: bool) -> bytes:
     cover(DATE_RECT_X, DATE_RECT_Y, DATE_RECT_W, DATE_RECT_H)
     c.drawString(DATE_X, DATE_BASE, date_str)
 
-    # Model
-    cover(MODEL_RECT_X, MODEL_RECT_Y, MODEL_RECT_W, MODEL_RECT_H)
-    c.drawString(MODEL_X, MODEL_BASE, model)
+    # Model + SKU — auto-scale font so combined text always fits on one line
+    combined_w = stringWidth(model, "Helvetica", FONT_SIZE) + 8 + stringWidth(sku, "Helvetica", FONT_SIZE)
+    line_size  = FONT_SIZE if combined_w <= LINE_AVAIL else max(7.0, FONT_SIZE * LINE_AVAIL / combined_w)
+    line_base  = PAGE_HEIGHT - LINE_TOP - line_size * 0.792  # ascent ≈ 79.2% of em
 
-    # SKU
-    cover(SKU_RECT_X, SKU_RECT_Y, SKU_RECT_W, SKU_RECT_H)
-    c.drawString(SKU_X, SKU_BASE, sku)
+    cover(LINE_RECT_X, LINE_RECT_Y, LINE_RECT_W, LINE_RECT_H)
+    c.setFont("Helvetica", line_size)
+    c.drawString(MODEL_X, line_base, model)        # model: left-aligned
+    c.drawRightString(SKU_RIGHT_X, line_base, sku) # SKU:   right-aligned before label
 
     if with_standards:
         y = STANDARDS_START_Y
