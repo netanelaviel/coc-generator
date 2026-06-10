@@ -59,31 +59,40 @@ def index():
 
     error = None
     if request.method == "POST":
-        sku = request.form.get("sku", "").strip()
-        if not sku:
-            error = "יש להזין מק\"ט"
+        skus     = [s.strip() for s in request.form.getlist("sku") if s.strip()]
+        coc_type = request.form.get("coc_type", "standard")
+
+        if not skus:
+            error = "יש להזין לפחות מק\"ט אחד"
         else:
-            res = supabase.table("coc_products").select("*").eq("sku", sku).execute()
-            if not res.data:
-                error = f'מק"ט {sku} לא נמצא במערכת'
+            items       = []
+            not_found   = []
+            for sku in skus:
+                res = supabase.table("coc_products").select("*").eq("sku", sku).execute()
+                if not res.data:
+                    not_found.append(sku)
+                else:
+                    items.append((sku, res.data[0]["model"]))
+
+            if not_found:
+                error = "מק\"טים לא נמצאו: " + ", ".join(not_found)
             else:
-                product = res.data[0]
-
-                coc_type = request.form.get("coc_type", "standard")
-
-                # Log the generation
-                supabase.table("coc_logs").insert({
-                    "username": session["user"],
-                    "sku": sku,
-                    "model": product["model"],
-                }).execute()
+                # Log
+                for sku, model in items:
+                    supabase.table("coc_logs").insert({
+                        "username": session["user"],
+                        "sku": sku, "model": model,
+                    }).execute()
 
                 if coc_type == "with_standards":
-                    pdf_bytes = generate_coc_with_standards(sku, product["model"])
-                    filename = f"COC_Standards_{sku}_{datetime.now().strftime('%Y%m%d')}.pdf"
+                    pdf_bytes = generate_coc_with_standards(items)
+                    prefix = "COC_Standards"
                 else:
-                    pdf_bytes = generate_coc(sku, product["model"])
-                    filename = f"COC_{sku}_{datetime.now().strftime('%Y%m%d')}.pdf"
+                    pdf_bytes = generate_coc(items)
+                    prefix = "COC"
+
+                sku_tag  = skus[0] if len(skus) == 1 else f"{skus[0]}_+{len(skus)-1}"
+                filename = f"{prefix}_{sku_tag}_{datetime.now().strftime('%Y%m%d')}.pdf"
                 return send_file(
                     io.BytesIO(pdf_bytes),
                     mimetype="application/pdf",

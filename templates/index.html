@@ -6,114 +6,68 @@
   <title>מחולל תעודות COC</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f0f4f8;
-      min-height: 100vh;
-    }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; min-height: 100vh; }
     header {
-      background: #1a2540;
-      color: white;
+      background: #1a2540; color: white;
       padding: 16px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: flex; justify-content: space-between; align-items: center;
     }
     header h1 { font-size: 18px; }
     header .user-info { font-size: 13px; color: #94a3b8; }
-    header .user-info a {
-      color: #60a5fa;
-      text-decoration: none;
-      margin-right: 12px;
-    }
-    header .user-info a:hover { text-decoration: underline; }
-    .container {
-      max-width: 520px;
-      margin: 60px auto;
-      padding: 0 16px;
-    }
+    header .user-info a { color: #60a5fa; text-decoration: none; margin-right: 12px; }
+    .container { max-width: 540px; margin: 50px auto; padding: 0 16px; }
     .card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-      padding: 40px;
+      background: white; border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10); padding: 36px 40px;
     }
-    .card h2 {
-      font-size: 20px;
-      color: #1a2540;
-      margin-bottom: 8px;
+    .card h2 { font-size: 20px; color: #1a2540; margin-bottom: 6px; }
+    .card p { font-size: 13px; color: #6b7280; margin-bottom: 24px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .sku-row {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
     }
-    .card p {
-      font-size: 13px;
-      color: #6b7280;
-      margin-bottom: 28px;
+    .sku-row input {
+      flex: 1; padding: 10px 14px; border: 1.5px solid #d1d5db;
+      border-radius: 8px; font-size: 16px; letter-spacing: 0.5px;
+      direction: ltr; text-align: center; transition: border-color 0.2s;
     }
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 8px;
+    .sku-row input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .btn-remove {
+      width: 32px; height: 32px; border: none; background: #fee2e2;
+      color: #dc2626; border-radius: 6px; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background 0.15s;
     }
-    input[type="text"] {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1.5px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 18px;
-      letter-spacing: 1px;
-      direction: ltr;
-      text-align: center;
-      transition: border-color 0.2s;
+    .btn-remove:hover { background: #fecaca; }
+    #btn-add {
+      width: 100%; padding: 9px; margin-top: 4px; margin-bottom: 20px;
+      border: 1.5px dashed #d1d5db; background: none; border-radius: 8px;
+      font-size: 13px; color: #6b7280; cursor: pointer; transition: all 0.15s;
     }
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-    }
+    #btn-add:hover { border-color: #2563eb; color: #2563eb; }
     .error {
-      background: #fee2e2;
-      color: #991b1b;
-      border-radius: 8px;
-      padding: 12px 16px;
-      font-size: 13px;
-      margin-top: 16px;
+      background: #fee2e2; color: #991b1b;
+      border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px;
     }
-    button[type="submit"] {
-      width: 100%;
-      margin-top: 24px;
-      padding: 14px;
-      background: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+    .btn-row { display: flex; gap: 10px; }
+    .btn-submit {
+      flex: 1; padding: 13px; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: filter 0.15s;
     }
-    button[type="submit"]:hover { background: #1d4ed8; }
-    button[type="submit"]:active { background: #1e40af; }
+    .btn-submit:hover { filter: brightness(0.92); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-blue  { background: #2563eb; color: white; }
+    .btn-teal  { background: #0f766e; color: white; }
     .spinner {
-      display: none;
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255,255,255,0.4);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
+      display: none; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4); border-top-color: white;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .hint {
-      text-align: center;
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 16px;
-    }
+    .hint { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 14px; }
+    .counter { font-size: 11px; color: #9ca3af; text-align: left; margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -121,6 +75,7 @@
     <h1>Wise Electric — תעודות COC</h1>
     <div class="user-info">
       שלום, {{ user }}
+      <a href="/admin">ניהול</a>
       <a href="/logout">יציאה</a>
     </div>
   </header>
@@ -128,33 +83,34 @@
   <div class="container">
     <div class="card">
       <h2>יצירת תעודת התאמה</h2>
-      <p>הכנס מק"ט של המוצר וקבל תעודת COC מעודכנת עם תאריך היום</p>
+      <p>הכנס מק"ט אחד או יותר — התעודה תכלול את כולם</p>
+
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
 
       <form method="POST" id="coc-form" onsubmit="handleSubmit()">
         <input type="hidden" name="coc_type" id="coc_type" value="standard">
 
-        <label for="sku">מק"ט</label>
-        <input
-          type="text"
-          id="sku"
-          name="sku"
-          placeholder="לדוגמה: 6905414"
-          autofocus
-          required
-        >
+        <label>מק"ט</label>
+        <div id="sku-list">
+          <div class="sku-row">
+            <input type="text" name="sku" placeholder="לדוגמה: 6905414" autofocus required>
+          </div>
+        </div>
 
-        {% if error %}
-        <div class="error">{{ error }}</div>
-        {% endif %}
+        <div class="counter" id="counter">1 / 8 מק"טים</div>
 
-        <div style="display:flex; gap:10px; margin-top:24px;">
-          <button type="submit" id="submit-btn" onclick="setType('standard')" style="flex:1; padding:13px; background:#2563eb; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
-            <span class="spinner" id="spinner"></span>
-            <span id="btn-text">COC רגיל</span>
+        <button type="button" id="btn-add" onclick="addSku()">+ הוסף מק"ט נוסף</button>
+
+        <div class="btn-row">
+          <button type="submit" class="btn-submit btn-blue" onclick="setType('standard')">
+            <span class="spinner" id="sp1"></span>
+            <span id="t1">COC רגיל</span>
           </button>
-          <button type="submit" id="submit-btn2" onclick="setType('with_standards')" style="flex:1; padding:13px; background:#0f766e; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
-            <span class="spinner" id="spinner2"></span>
-            <span id="btn-text2">COC עם תקנים</span>
+          <button type="submit" class="btn-submit btn-teal" onclick="setType('with_standards')">
+            <span class="spinner" id="sp2"></span>
+            <span id="t2">COC עם תקנים</span>
           </button>
         </div>
       </form>
@@ -164,23 +120,55 @@
   </div>
 
   <script>
+    const MAX = 8;
+
+    function updateCounter() {
+      const n = document.querySelectorAll('#sku-list .sku-row').length;
+      document.getElementById('counter').textContent = n + ' / ' + MAX + ' מק"טים';
+      document.getElementById('btn-add').style.display = n >= MAX ? 'none' : 'block';
+    }
+
+    function addSku() {
+      const list = document.getElementById('sku-list');
+      if (list.children.length >= MAX) return;
+      const row = document.createElement('div');
+      row.className = 'sku-row';
+      row.innerHTML = `
+        <input type="text" name="sku" placeholder="מק&quot;ט" required>
+        <button type="button" class="btn-remove" onclick="removeSku(this)" title="הסר">×</button>
+      `;
+      list.appendChild(row);
+      row.querySelector('input').focus();
+      updateCounter();
+    }
+
+    function removeSku(btn) {
+      btn.parentElement.remove();
+      updateCounter();
+      // Make first input required if only one left
+      const inputs = document.querySelectorAll('#sku-list input');
+      if (inputs.length === 1) inputs[0].required = true;
+    }
+
     function setType(type) {
       document.getElementById('coc_type').value = type;
     }
+
     function handleSubmit() {
-      const isStandards = document.getElementById('coc_type').value === 'with_standards';
-      const spinnerId = isStandards ? 'spinner2' : 'spinner';
-      const btnTextId = isStandards ? 'btn-text2' : 'btn-text';
-      const btnId     = isStandards ? 'submit-btn2' : 'submit-btn';
-      document.getElementById(spinnerId).style.display = 'block';
-      document.getElementById(btnTextId).textContent = 'מייצר...';
-      document.getElementById(btnId).disabled = true;
+      const isStd = document.getElementById('coc_type').value === 'with_standards';
+      const sp = isStd ? 'sp2' : 'sp1';
+      const tx = isStd ? 't2'  : 't1';
+      document.getElementById(sp).style.display = 'inline-block';
+      document.getElementById(tx).textContent = 'מייצר...';
+      document.querySelectorAll('.btn-submit').forEach(b => b.disabled = true);
       setTimeout(() => {
-        document.getElementById(spinnerId).style.display = 'none';
-        document.getElementById(btnTextId).textContent = isStandards ? 'COC עם תקנים' : 'COC רגיל';
-        document.getElementById(btnId).disabled = false;
+        document.getElementById(sp).style.display = 'none';
+        document.getElementById(tx).textContent = isStd ? 'COC עם תקנים' : 'COC רגיל';
+        document.querySelectorAll('.btn-submit').forEach(b => b.disabled = false);
       }, 5000);
     }
+
+    updateCounter();
   </script>
 </body>
 </html>

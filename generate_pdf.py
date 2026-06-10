@@ -6,48 +6,45 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
 TEMPLATE_PATH = "static/template.pdf"
+PAGE_HEIGHT   = 841.89  # A4 points
 
-PAGE_HEIGHT = 841.89  # A4 in points
+FONT_SIZE     = 12
+ASCENT_RATIO  = 0.792   # Helvetica ascent ≈ 79.2% of em
 
-# --- Exact positions from pdfplumber analysis ---
-#
-# Date "26/4/26": Calibri-Light 12pt, x=67.1, top=120.7
-# Underline line in template: x=51.8..124.1, top=132.1
-# Label ":תאריך" starts at x=126.9 — do NOT cover it
-#
-# Model "DCRP-50RNF": ArialMT 12pt, x=319.2, top=287.1, ends ~x=393
-# SKU "6905414":      ArialMT 12pt, x=432.8, top=287.1, ends ~x=480
-
-FONT_SIZE   = 12
-FONT_ASCENT = 9.5   # approx ascent for 12pt Arial/Calibri
-
-# Date
+# ── Date field ────────────────────────────────────────────────────────────────
+# Calibri-Light 12pt at pdfplumber (67.1, 120.7)
+# Template underline at top=132.1, x=51.8..124.1
 DATE_X      = 67.1
-DATE_BASE   = PAGE_HEIGHT - 120.7 - FONT_ASCENT   # baseline in reportlab coords
+DATE_BASE   = PAGE_HEIGHT - 120.7 - FONT_SIZE * ASCENT_RATIO
+DATE_RECT_X = 49;  DATE_RECT_Y = PAGE_HEIGHT - 134
+DATE_RECT_W = 75;  DATE_RECT_H = 18
 
-# Template underline is at pdfplumber top=132.1 → need rect to cover it too
-DATE_RECT_X = 49
-DATE_RECT_Y = PAGE_HEIGHT - 134   # bottom of rect (below the underline)
-DATE_RECT_W = 75                   # covers x=49..124, just before label at 126.9
-DATE_RECT_H = 18                   # covers from underline up through the text
+# ── Single SKU/Model line ─────────────────────────────────────────────────────
+# ArialMT 12pt; model at x=319.2, SKU right-aligned to x=478 (before :מ"ק at 482)
+LINE_TOP    = 287.1
+MODEL_X     = 319.2
+SKU_RIGHT_X = 478
+LINE_AVAIL  = SKU_RIGHT_X - MODEL_X   # ~158.8 pt
 
-# Model + SKU share one line — covered by a single wide white rect
-# Model left-aligned at x=319.2, SKU right-aligned at x=478 (just before :מ"ק label at 482)
-# Auto-scale font down if combined width exceeds available space
-LINE_TOP     = 287.1                     # pdfplumber top of the line
-LINE_RECT_X  = 317                       # left edge of white cover rect
-LINE_RECT_Y  = PAGE_HEIGHT - 301        # bottom of white cover rect
-LINE_RECT_W  = 163                       # covers x=317..480
-LINE_RECT_H  = 17
+LINE_RECT_X = 317;  LINE_RECT_Y = PAGE_HEIGHT - 301
+LINE_RECT_W = 163;  LINE_RECT_H = 17
 
-MODEL_X      = 319.2                     # left-align model here
-SKU_RIGHT_X  = 478                       # right-align SKU here
-LINE_AVAIL   = SKU_RIGHT_X - MODEL_X    # ~158.8 pt available for both values
+# ── Multi-SKU area ────────────────────────────────────────────────────────────
+# Covers original SKU line + gap + body-text area (pdfplumber top 278..393)
+MULTI_TOP_PL   = 278
+MULTI_BTM_PL   = 393
+MULTI_COVER_Y  = PAGE_HEIGHT - MULTI_BTM_PL          # 448.89  (rl bottom)
+MULTI_COVER_H  = (PAGE_HEIGHT - MULTI_TOP_PL) - MULTI_COVER_Y  # ≈ 115 pt
 
+MULTI_HEADER_PL = 284   # pdfplumber top for header row
+MULTI_ITEMS_PL  = 297   # pdfplumber top for first item row
+MULTI_LINE_H    = 11    # pt per item row (pdfplumber units)
+MAX_ITEMS       = 8
 
-# Standards block — fits in the empty gap between body text (top≈393) and signature (top≈471)
-STANDARDS_START_Y = PAGE_HEIGHT - 402 - 6   # first baseline in reportlab coords
-STANDARDS_LINE_H  = 9.0                      # line spacing in points
+# ── Standards block ───────────────────────────────────────────────────────────
+# Empty gap between body text (top≈393) and signature (top≈471)
+STANDARDS_START_Y = PAGE_HEIGHT - 402 - 6
+STANDARDS_LINE_H  = 9.0
 
 STANDARDS_LINES = [
     (True,  "Relevant standards:"),
@@ -60,44 +57,101 @@ STANDARDS_LINES = [
 ]
 
 
-def _build_overlay(sku: str, model: str, with_standards: bool) -> bytes:
+# ── Internal helpers ──────────────────────────────────────────────────────────
+
+def _rl_base(pl_top, fs):
+    """Convert pdfplumber top → reportlab baseline y."""
+    return PAGE_HEIGHT - pl_top - fs * ASCENT_RATIO
+
+
+def _fit_size(model, sku, avail, base=FONT_SIZE, min_size=7.0):
+    combined = stringWidth(model, "Helvetica", base) + 8 + stringWidth(sku, "Helvetica", base)
+    if combined <= avail:
+        return base
+    return max(min_size, base * avail / combined)
+
+
+def _draw_date(c, date_str):
+    c.setFillColorRGB(1, 1, 1)
+    c.rect(DATE_RECT_X, DATE_RECT_Y, DATE_RECT_W, DATE_RECT_H, fill=1, stroke=0)
+    c.setFillColorRGB(0, 0, 0)
+    c.setFont("Helvetica", FONT_SIZE)
+    c.drawString(DATE_X, DATE_BASE, date_str)
+
+
+def _draw_single_item(c, sku, model):
+    fs = _fit_size(model, sku, LINE_AVAIL)
+    c.setFillColorRGB(1, 1, 1)
+    c.rect(LINE_RECT_X, LINE_RECT_Y, LINE_RECT_W, LINE_RECT_H, fill=1, stroke=0)
+    c.setFillColorRGB(0, 0, 0)
+    c.setFont("Helvetica", fs)
+    base = _rl_base(LINE_TOP, fs)
+    c.drawString(MODEL_X, base, model)
+    c.drawRightString(SKU_RIGHT_X, base, sku)
+
+
+def _draw_multi_items(c, items):
+    n = len(items)
+    fs = FONT_SIZE if n <= 4 else (10 if n <= 6 else 8.5)
+
+    # White cover rect over SKU line + gap + body text
+    c.setFillColorRGB(1, 1, 1)
+    c.rect(27, MULTI_COVER_Y, 456, MULTI_COVER_H, fill=1, stroke=0)
+    c.setFillColorRGB(0, 0, 0)
+
+    # Column headers (small, gray)
+    c.setFillColorRGB(0.4, 0.4, 0.4)
+    c.setFont("Helvetica-Bold", 8)
+    header_base = _rl_base(MULTI_HEADER_PL, 8)
+    c.drawString(MODEL_X, header_base, "Model")
+    c.drawRightString(SKU_RIGHT_X, header_base, "SKU")
+
+    # Thin separator line
+    sep_y = header_base - 3
+    c.setStrokeColorRGB(0.6, 0.6, 0.6)
+    c.setLineWidth(0.5)
+    c.line(MODEL_X, sep_y, SKU_RIGHT_X, sep_y)
+
+    # Item rows
+    c.setFillColorRGB(0, 0, 0)
+    for i, (sku, model) in enumerate(items):
+        pl_top = MULTI_ITEMS_PL + i * MULTI_LINE_H
+        row_fs = _fit_size(model, sku, LINE_AVAIL, fs)
+        c.setFont("Helvetica", row_fs)
+        base = _rl_base(pl_top, row_fs)
+        c.drawString(MODEL_X, base, model)
+        c.drawRightString(SKU_RIGHT_X, base, sku)
+
+
+def _draw_standards(c):
+    y = STANDARDS_START_Y
+    for bold, line in STANDARDS_LINES:
+        c.setFont("Helvetica-Bold" if bold else "Helvetica", 8)
+        c.setFillColorRGB(0, 0, 0)
+        c.drawString(27, y, line)
+        y -= STANDARDS_LINE_H
+
+
+def _build(items: list, with_standards: bool) -> bytes:
     now = datetime.now()
     date_str = f"{now.day}/{now.month}/{str(now.year)[2:]}"
 
-    overlay_buf = io.BytesIO()
-    c = canvas.Canvas(overlay_buf, pagesize=A4)
+    buf = io.BytesIO()
+    c   = canvas.Canvas(buf, pagesize=A4)
 
-    def cover(rx, ry, rw, rh):
-        c.setFillColorRGB(1, 1, 1)
-        c.rect(rx, ry, rw, rh, fill=1, stroke=0)
-        c.setFillColorRGB(0, 0, 0)
+    _draw_date(c, date_str)
 
-    c.setFont("Helvetica", FONT_SIZE)
-
-    # Date — also covers the template's underline below the field
-    cover(DATE_RECT_X, DATE_RECT_Y, DATE_RECT_W, DATE_RECT_H)
-    c.drawString(DATE_X, DATE_BASE, date_str)
-
-    # Model + SKU — auto-scale font so combined text always fits on one line
-    combined_w = stringWidth(model, "Helvetica", FONT_SIZE) + 8 + stringWidth(sku, "Helvetica", FONT_SIZE)
-    line_size  = FONT_SIZE if combined_w <= LINE_AVAIL else max(7.0, FONT_SIZE * LINE_AVAIL / combined_w)
-    line_base  = PAGE_HEIGHT - LINE_TOP - line_size * 0.792  # ascent ≈ 79.2% of em
-
-    cover(LINE_RECT_X, LINE_RECT_Y, LINE_RECT_W, LINE_RECT_H)
-    c.setFont("Helvetica", line_size)
-    c.drawString(MODEL_X, line_base, model)        # model: left-aligned
-    c.drawRightString(SKU_RIGHT_X, line_base, sku) # SKU:   right-aligned before label
+    if len(items) == 1:
+        _draw_single_item(c, items[0][0], items[0][1])
+    else:
+        _draw_multi_items(c, items)
 
     if with_standards:
-        y = STANDARDS_START_Y
-        for bold, line in STANDARDS_LINES:
-            c.setFont("Helvetica-Bold" if bold else "Helvetica", 8)
-            c.drawString(27, y, line)
-            y -= STANDARDS_LINE_H
+        _draw_standards(c)
 
     c.save()
-    overlay_buf.seek(0)
-    return overlay_buf.read()
+    buf.seek(0)
+    return buf.read()
 
 
 def _merge(overlay_bytes: bytes) -> bytes:
@@ -113,9 +167,13 @@ def _merge(overlay_bytes: bytes) -> bytes:
     return out.read()
 
 
-def generate_coc(sku: str, model: str) -> bytes:
-    return _merge(_build_overlay(sku, model, with_standards=False))
+# ── Public API ────────────────────────────────────────────────────────────────
+
+def generate_coc(items: list) -> bytes:
+    """items = [(sku, model), ...]"""
+    return _merge(_build(items, with_standards=False))
 
 
-def generate_coc_with_standards(sku: str, model: str) -> bytes:
-    return _merge(_build_overlay(sku, model, with_standards=True))
+def generate_coc_with_standards(items: list) -> bytes:
+    """items = [(sku, model), ...]"""
+    return _merge(_build(items, with_standards=True))
