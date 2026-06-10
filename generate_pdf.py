@@ -30,15 +30,16 @@ LINE_RECT_X = 317;  LINE_RECT_Y = PAGE_HEIGHT - 301
 LINE_RECT_W = 163;  LINE_RECT_H = 17
 
 # ── Multi-SKU area ────────────────────────────────────────────────────────────
-# Covers original SKU line + gap + body-text area (pdfplumber top 278..393)
-MULTI_TOP_PL   = 278
-MULTI_BTM_PL   = 393
-MULTI_COVER_Y  = PAGE_HEIGHT - MULTI_BTM_PL          # 448.89  (rl bottom)
-MULTI_COVER_H  = (PAGE_HEIGHT - MULTI_TOP_PL) - MULTI_COVER_Y  # ≈ 115 pt
+# Uses the EMPTY GAP between title underline (top=231) and body text (top=331).
+# Body text is NOT touched — only the blank area above it is used.
+# Available: top=234..330 = 96pt → fits 8 items @ 12pt spacing.
+MULTI_TOP_PL   = 234
+MULTI_BTM_PL   = 330
+MULTI_COVER_Y  = PAGE_HEIGHT - MULTI_BTM_PL          # 511.89 (rl bottom)
+MULTI_COVER_H  = (PAGE_HEIGHT - MULTI_TOP_PL) - MULTI_COVER_Y  # ≈ 96 pt
 
-MULTI_HEADER_PL = 284   # pdfplumber top for header row
-MULTI_ITEMS_PL  = 297   # pdfplumber top for first item row
-MULTI_LINE_H    = 11    # pt per item row (pdfplumber units)
+MULTI_ITEMS_PL  = 241   # pdfplumber top for first item row
+MULTI_LINE_H    = 12    # pt per item row (pdfplumber units)
 MAX_ITEMS       = 8
 
 # ── Standards block ───────────────────────────────────────────────────────────
@@ -91,29 +92,15 @@ def _draw_single_item(c, sku, model):
 
 
 def _draw_multi_items(c, items):
-    n = len(items)
-    fs = FONT_SIZE if n <= 4 else (10 if n <= 6 else 8.5)
+    n   = len(items)
+    fs  = FONT_SIZE if n <= 4 else (10 if n <= 6 else 8.5)
 
-    # White cover rect over SKU line + gap + body text
+    # White rect covers only the empty gap (above body text, below title)
     c.setFillColorRGB(1, 1, 1)
     c.rect(27, MULTI_COVER_Y, 456, MULTI_COVER_H, fill=1, stroke=0)
     c.setFillColorRGB(0, 0, 0)
 
-    # Column headers (small, gray)
-    c.setFillColorRGB(0.4, 0.4, 0.4)
-    c.setFont("Helvetica-Bold", 8)
-    header_base = _rl_base(MULTI_HEADER_PL, 8)
-    c.drawString(MODEL_X, header_base, "Model")
-    c.drawRightString(SKU_RIGHT_X, header_base, "SKU")
-
-    # Thin separator line
-    sep_y = header_base - 3
-    c.setStrokeColorRGB(0.6, 0.6, 0.6)
-    c.setLineWidth(0.5)
-    c.line(MODEL_X, sep_y, SKU_RIGHT_X, sep_y)
-
-    # Item rows
-    c.setFillColorRGB(0, 0, 0)
+    # Item rows — no English header
     for i, (sku, model) in enumerate(items):
         pl_top = MULTI_ITEMS_PL + i * MULTI_LINE_H
         row_fs = _fit_size(model, sku, LINE_AVAIL, fs)
