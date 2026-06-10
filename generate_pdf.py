@@ -47,7 +47,22 @@ SKU_RECT_W  = 52
 SKU_RECT_H  = 16
 
 
-def generate_coc(sku: str, model: str) -> bytes:
+# Standards block — fits in the empty gap between body text (top≈393) and signature (top≈471)
+STANDARDS_START_Y = PAGE_HEIGHT - 402 - 6   # first baseline in reportlab coords
+STANDARDS_LINE_H  = 9.0                      # line spacing in points
+
+STANDARDS_LINES = [
+    (True,  "Relevant standards:"),
+    (False, "• IEC / DIN EN 60601-1: Medical electrical equipment – General requirements for safety."),
+    (False, "• IEC 60364-7-710: Electrical installations of buildings – Requirements for special"),
+    (False, "   installations or locations – Medical locations."),
+    (False, "• DIN EN 793 (VDE 0750 Part 211): Particular requirements for safety of medical supply units."),
+    (False, "• DIN 42801: Potential equalisation leads – Connecting pins."),
+    (False, "• DIN 42801 part 2: Potential equalisation leads – Connecting socket."),
+]
+
+
+def _build_overlay(sku: str, model: str, with_standards: bool) -> bytes:
     now = datetime.now()
     date_str = f"{now.day}/{now.month}/{str(now.year)[2:]}"
 
@@ -73,18 +88,34 @@ def generate_coc(sku: str, model: str) -> bytes:
     cover(SKU_RECT_X, SKU_RECT_Y, SKU_RECT_W, SKU_RECT_H)
     c.drawString(SKU_X, SKU_BASE, sku)
 
+    if with_standards:
+        y = STANDARDS_START_Y
+        for bold, line in STANDARDS_LINES:
+            c.setFont("Helvetica-Bold" if bold else "Helvetica", 8)
+            c.drawString(27, y, line)
+            y -= STANDARDS_LINE_H
+
     c.save()
     overlay_buf.seek(0)
+    return overlay_buf.read()
 
+
+def _merge(overlay_bytes: bytes) -> bytes:
     template = PdfReader(TEMPLATE_PATH)
-    overlay   = PdfReader(overlay_buf)
-
-    writer = PdfWriter()
-    page   = template.pages[0]
+    overlay  = PdfReader(io.BytesIO(overlay_bytes))
+    writer   = PdfWriter()
+    page     = template.pages[0]
     page.merge_page(overlay.pages[0])
     writer.add_page(page)
-
     out = io.BytesIO()
     writer.write(out)
     out.seek(0)
     return out.read()
+
+
+def generate_coc(sku: str, model: str) -> bytes:
+    return _merge(_build_overlay(sku, model, with_standards=False))
+
+
+def generate_coc_with_standards(sku: str, model: str) -> bytes:
+    return _merge(_build_overlay(sku, model, with_standards=True))

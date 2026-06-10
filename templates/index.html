@@ -131,6 +131,8 @@
       <p>הכנס מק"ט של המוצר וקבל תעודת COC מעודכנת עם תאריך היום</p>
 
       <form method="POST" id="coc-form" onsubmit="handleSubmit()">
+        <input type="hidden" name="coc_type" id="coc_type" value="standard">
+
         <label for="sku">מק"ט</label>
         <input
           type="text"
@@ -145,10 +147,16 @@
         <div class="error">{{ error }}</div>
         {% endif %}
 
-        <button type="submit" id="submit-btn">
-          <span class="spinner" id="spinner"></span>
-          <span id="btn-text">צור תעודה והורד PDF</span>
-        </button>
+        <div style="display:flex; gap:10px; margin-top:24px;">
+          <button type="submit" id="submit-btn" onclick="setType('standard')" style="flex:1; padding:13px; background:#2563eb; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
+            <span class="spinner" id="spinner"></span>
+            <span id="btn-text">COC רגיל</span>
+          </button>
+          <button type="submit" id="submit-btn2" onclick="setType('with_standards')" style="flex:1; padding:13px; background:#0f766e; color:white; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
+            <span class="spinner" id="spinner2"></span>
+            <span id="btn-text2">COC עם תקנים</span>
+          </button>
+        </div>
       </form>
 
       <div class="hint">הקובץ יורד אוטומטית לאחר הלחיצה</div>
@@ -156,15 +164,21 @@
   </div>
 
   <script>
+    function setType(type) {
+      document.getElementById('coc_type').value = type;
+    }
     function handleSubmit() {
-      document.getElementById('spinner').style.display = 'block';
-      document.getElementById('btn-text').textContent = 'מייצר תעודה...';
-      document.getElementById('submit-btn').disabled = true;
-      // Re-enable after 5 seconds in case of error
+      const isStandards = document.getElementById('coc_type').value === 'with_standards';
+      const spinnerId = isStandards ? 'spinner2' : 'spinner';
+      const btnTextId = isStandards ? 'btn-text2' : 'btn-text';
+      const btnId     = isStandards ? 'submit-btn2' : 'submit-btn';
+      document.getElementById(spinnerId).style.display = 'block';
+      document.getElementById(btnTextId).textContent = 'מייצר...';
+      document.getElementById(btnId).disabled = true;
       setTimeout(() => {
-        document.getElementById('spinner').style.display = 'none';
-        document.getElementById('btn-text').textContent = 'צור תעודה והורד PDF';
-        document.getElementById('submit-btn').disabled = false;
+        document.getElementById(spinnerId).style.display = 'none';
+        document.getElementById(btnTextId).textContent = isStandards ? 'COC עם תקנים' : 'COC רגיל';
+        document.getElementById(btnId).disabled = false;
       }, 5000);
     }
   </script>

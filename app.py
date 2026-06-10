@@ -7,7 +7,7 @@ from flask import (
     url_for, session, send_file, flash
 )
 from supabase import create_client, Client
-from generate_pdf import generate_coc
+from generate_pdf import generate_coc, generate_coc_with_standards
 
 app = Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
@@ -69,6 +69,8 @@ def index():
             else:
                 product = res.data[0]
 
+                coc_type = request.form.get("coc_type", "standard")
+
                 # Log the generation
                 supabase.table("coc_logs").insert({
                     "username": session["user"],
@@ -76,8 +78,12 @@ def index():
                     "model": product["model"],
                 }).execute()
 
-                pdf_bytes = generate_coc(sku, product["model"])
-                filename = f"COC_{sku}_{datetime.now().strftime('%Y%m%d')}.pdf"
+                if coc_type == "with_standards":
+                    pdf_bytes = generate_coc_with_standards(sku, product["model"])
+                    filename = f"COC_Standards_{sku}_{datetime.now().strftime('%Y%m%d')}.pdf"
+                else:
+                    pdf_bytes = generate_coc(sku, product["model"])
+                    filename = f"COC_{sku}_{datetime.now().strftime('%Y%m%d')}.pdf"
                 return send_file(
                     io.BytesIO(pdf_bytes),
                     mimetype="application/pdf",
